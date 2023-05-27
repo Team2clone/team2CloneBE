@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const checkLogin = require("..middlewares/checkLogin.js")
-const checkCredit = require("..middlewares/checkCredit.js")
+const checkLogin = require("..middlewares/checkLogin.js") //유저아이디받기
 const { Users, Chats, Conversations } = require('../models');
 
 // ◎  새 대화 생성

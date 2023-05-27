@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Users, Models } = require('../models');
 const jwt = require('jsonwebtoken');
+const checkLogin = require("..middlewares/checkLogin.js") //유저아이디받기
 const letter = [
     '.',
     '/',
@@ -181,13 +182,20 @@ router.post('/logout', async (req, res) => {
 });
 
 // ◎  credit 확인 API
-router.get('/credit', async (req, res) => {
+router.get('/credit', checkLogin, async (req, res) => {
   try {
-    res.status(200).json({ message: 'api 연결 성공' });
+    const { userId } = res.locals.user;
+
+    const mycredit = await Users.findOne({
+      attributes: ["credit"],
+      where: {userId}
+    })
+    return res.status(200).json({ mycredit: mycredit });
+
 } catch {
     return res
         .status(500)
-        .json({ errorMessage: '예상하지 못한 서버 문제가 발생했습니다.' });
+        .json({ errorMessage: '크레딧 조회에 실패했습니다' });
 }
 });
 
