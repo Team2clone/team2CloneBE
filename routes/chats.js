@@ -16,6 +16,39 @@ router.get('/chat', async (req, res) => {
 
 // ◎  대화하기
 router.post('/chat/:chatId', async (req, res) => {
+    //const { userId } = res.locals.user;
+    const { chatId } = req.params;
+    const { ask } = req.body;
+    try {
+        // 사용자 크레딧 확인
+        // const credit = await Users.findOne({
+        //     where: { userId },
+        //     attributes: ['credit'],
+        // });
+        // if (!credit) {
+        //     res.status(402).json({
+        //         errorMsg: '질문에 필요한 크레딧이 부족합니다.',
+        //     });
+        // }
+        // 사용자 대화 저장
+        await Conversations.create({
+            ChatId: chatId,
+            isGPT: false,
+            conversation: ask,
+        });
+        // ------ GPT API 부분으로 대체 예정 -------
+        const isGPT = true;
+        const conversation = 'test';
+        // ------ GPT API 부분으로 대체 예정 -------
+        // GPT 대화 내용 저장
+        await Conversations.create({ ChatId: chatId, isGPT, conversation });
+        res.status(200).json({ answer: conversation });
+    } catch (error) {
+        console.error(`[GET] /chat/:chatId with ${error}`);
+        return res.status(500).json({
+            errorMsg: '예상하지 못한 서버 문제가 발생했습니다.',
+        });
+    }
 });
 
 // ◎  대화내용 조회
