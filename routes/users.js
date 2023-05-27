@@ -2,6 +2,31 @@ const express = require('express');
 const router = express.Router();
 const { Users, Models } = require('../models');
 const jwt = require('jsonwebtoken');
+const letter = [
+    '.',
+    '/',
+    '_',
+    '+',
+    '-',
+    '!',
+    '~',
+    '#',
+    '$',
+    '%',
+    '^',
+    '&',
+    '*',
+    '(',
+    ')',
+    '=',
+    '?',
+    '<',
+    '>',
+    '"',
+    "'",
+    '`',
+    '|',
+];
 
 // ◎  회원가입 API
 router.post('/signup', async (req, res) => {
@@ -32,11 +57,10 @@ router.post('/signup', async (req, res) => {
         const existAt = email.split('@');
 
         //1.이메일 아이디에 특수기호가 있는경우
-        const emailletter = ['.', '/', '_', '+', '-', '!', '~', '#', '$','%','^','&','*','(',")",'=','?','<','>','"', "'", '`', '|'];
         let emailletterOk = 0;
-        for (let i of emailletter) {
-            if (existAt[0].split(`${i}`).length>1) {
-              emailletterOk = 1;
+        for (let i of letter) {
+            if (existAt[0].split(`${i}`).length > 1) {
+                emailletterOk = 1;
             }
         }
         if (emailletterOk) {
@@ -44,7 +68,7 @@ router.post('/signup', async (req, res) => {
                 .status(412)
                 .json({ errorMessage: '이메일의 형식이 올바르지 않습니다' });
         }
-        
+
         //2.도메인 형식이 맞지 않는 경우
         const emailDomain = ['naver.com', 'gmail.com', 'hamail.net'];
         let emailOk = 0;
@@ -61,11 +85,10 @@ router.post('/signup', async (req, res) => {
 
         //닉네임 형식이 비정상적인 경우
         ///1. 닉네임에 특수문자가 있는 경우
-        const nicknameletter = ['.', '/', '_', '+', '-', '!', '~', '#', '$','%','^','&','*','(',")",'=','?','<','>','"', "'", '`', '|'];
         let nicknameletterOk = 0;
-        for (let i of nicknameletter) {
-            if (nickname.split(`${i}`).length>1) {
-              nicknameletterOk = 1;
+        for (let i of letter) {
+            if (nickname.split(`${i}`).length > 1) {
+                nicknameletterOk = 1;
             }
         }
         if (nicknameletterOk) {
@@ -74,33 +97,32 @@ router.post('/signup', async (req, res) => {
                 .json({ errorMessage: '닉네임의 형식이 올바르지 않습니다' });
         }
         ///2.닉네임이 숫자로만 되어있는 경우
-        if(nickname*1){
-          return res
+        if (nickname * 1) {
+            return res
                 .status(412)
                 .json({ errorMessage: '닉네임의 형식이 올바르지 않습니다' });
-        };
+        }
 
         //password 형식이 비정상적인 경우
         ///1. password에 특수문자가 한개 이상 포함되지 않은 경우
-        const passwordletter = ['.', '/', '_', '+', '-', '!', '~', '#', '$','%','^','&','*','(',")",'=','?','<','>','"', "'", '`', '|'];
         let passwordletterOk = 0;
-        for (let i of passwordletter) {
-            if (password.split(`${i}`).length>1) {
-              passwordletterOk = 1;
+        for (let i of letter) {
+            if (password.split(`${i}`).length > 1) {
+                passwordletterOk = 1;
             }
         }
         if (!passwordletterOk) {
-            return res
-                .status(412)
-                .json({ errorMessage: '1개 이상의 특수문자를 사용하여 password를 설정해야 합니다.' });
+            return res.status(412).json({
+                errorMessage:
+                    '1개 이상의 특수문자를 사용하여 password를 설정해야 합니다.',
+            });
         }
 
-
         //password에 닉네임이 포함되어있는 경우
-        if(password.split(`${nickname}`).length>1){
-          return res
-                .status(412)
-                .json({ errorMessage: 'password에 nickname포함되어서는 안됩니다.' });
+        if (password.split(`${nickname}`).length > 1) {
+            return res.status(412).json({
+                errorMessage: 'password에 nickname포함되어서는 안됩니다.',
+            });
         }
 
         //회원가입
@@ -130,12 +152,13 @@ router.post('/login', async (req, res) => {
         //디비에 저장된 이메일이 없거나 패스워드가 틀린 경우
         if (!loginUser || password !== loginUser.password) {
             return res
-                .statusMessage(412)
+                .status(412)
                 .json({ errorMessage: '이메일 또는 패스워드를 확인해주세요.' });
         }
 
         //토큰 보내주기
         const token = jwt.sign({ userId: loginUser.userId }, 'chatGPT_key');
+        res.cookie("Authorization", `Bearer ${token}`);
         return res
             .status(200)
             .json({ token: `Bearer ${token}`, message: '로그인 성공' });
@@ -148,12 +171,24 @@ router.post('/login', async (req, res) => {
 
 // ◎  로그아웃 API
 router.post('/logout', async (req, res) => {
-    res.status(200).json({ message: '로그아웃 성공' });
+    try {
+        res.status(200).json({ message: '로그아웃 성공' });
+    } catch {
+        return res
+            .status(500)
+            .json({ errorMessage: '예상하지 못한 서버 문제가 발생했습니다.' });
+    }
 });
 
 // ◎  credit 확인 API
 router.get('/credit', async (req, res) => {
-    res.status(200).json({ message: 'api 연결' });
+  try {
+    res.status(200).json({ message: 'api 연결 성공' });
+} catch {
+    return res
+        .status(500)
+        .json({ errorMessage: '예상하지 못한 서버 문제가 발생했습니다.' });
+}
 });
 
 module.exports = router;

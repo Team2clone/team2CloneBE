@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const checkLogin = require("..middlewares/checkLogin.js")
+const checkCredit = require("..middlewares/checkCredit.js")
 const { Users, Chats, Conversations } = require('../models');
 
 // ◎  새 대화 생성

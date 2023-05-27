@@ -3,20 +3,20 @@ const { Users } = require("../models");
 
 module.exports = async(req, res, next) => {
     try {
-        const { token } = req.body;
-
-        if (!token) {
+        const { Authorization } = req.cookies;
+        const [authType, authToken] = Authorization.split(" ");
+        
+        //토큰이 있는지 확인 및 authTyep === Bearer인지 확인
+        if (!Authorization) {
             return res.status(403).json({ errorMessage: "로그인이 필요한 서비스입니다." });
         }
-
-        const [tokenType, tokenValue] = token.split(" ");
-        const { userId } = jwt.verify(tokenValue, "'chatGPT_key");
-
-        const user = await Users.findOne({ where: { userId } });
-
-        if (tokenType !== "Bearer" || !user) {
+        if (authType !== "Bearer" || !authToken) {
             return res.status(403).json({ errorMessage: "토큰 정보 오류" });
         }
+
+        //
+        const { userId } = jwt.verify(authToken, "'chatGPT_key");
+        const user = await Users.findOne({ where: { userId } });
 
         res.locals.user = user;
         next();
