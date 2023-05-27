@@ -192,7 +192,7 @@ router.get('/credit', checkLogin, async (req, res) => {
             attributes: ['credit'],
             where: { userId },
         });
-        return res.status(200).json({ mycredit: mycredit });
+        return res.status(200).json({ mycredit: mycredit.credit });
     } catch {
         return res
             .status(500)
