@@ -1,1 +1,4 @@
-node_modules
+# 환경변수 파일
+.env
+# node module
+node_modules/
