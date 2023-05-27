@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { Users, Models } = require('../models');
 const jwt = require('jsonwebtoken');
-const checkLogin = require("..middlewares/checkLogin.js") //유저아이디받기
+const checkLogin = require('../middlewares/checkLogin.js'); //유저아이디받기
 const letter = [
     '.',
     '/',
@@ -128,12 +128,12 @@ router.post('/signup', async (req, res) => {
 
         //회원가입
         const credit = 10; //처음 제공되는 기본 크레딧 값
-        // const newUser = await Users.create({
-        //     email,
-        //     password,
-        //     nickname,
-        //     credit,
-        // });
+        const newUser = await Users.create({
+            email,
+            password,
+            nickname,
+            credit,
+        });
         return res.status(201).json({ message: '회원가입 성공' });
     } catch (error) {
         return res
@@ -159,7 +159,7 @@ router.post('/login', async (req, res) => {
 
         //토큰 보내주기
         const token = jwt.sign({ userId: loginUser.userId }, 'chatGPT_key');
-        res.cookie("Authorization", `Bearer ${token}`);
+        res.cookie('Authorization', `Bearer ${token}`);
         return res
             .status(200)
             .json({ token: `Bearer ${token}`, message: '로그인 성공' });
@@ -173,7 +173,9 @@ router.post('/login', async (req, res) => {
 // ◎  로그아웃 API
 router.post('/logout', async (req, res) => {
     try {
-        res.status(200).json({ message: '로그아웃 성공' });
+        res.clearCookie('Authorization');
+        res.redirect('/');
+        return res.status(200).json({ message: '로그아웃 성공' });
     } catch {
         return res
             .status(500)
@@ -183,20 +185,19 @@ router.post('/logout', async (req, res) => {
 
 // ◎  credit 확인 API
 router.get('/credit', checkLogin, async (req, res) => {
-  try {
-    const { userId } = res.locals.user;
+    try {
+        const { userId } = res.locals.user;
 
-    const mycredit = await Users.findOne({
-      attributes: ["credit"],
-      where: {userId}
-    })
-    return res.status(200).json({ mycredit: mycredit });
-
-} catch {
-    return res
-        .status(500)
-        .json({ errorMessage: '크레딧 조회에 실패했습니다' });
-}
+        const mycredit = await Users.findOne({
+            attributes: ['credit'],
+            where: { userId },
+        });
+        return res.status(200).json({ mycredit: mycredit });
+    } catch {
+        return res
+            .status(500)
+            .json({ errorMessage: '크레딧 조회에 실패했습니다' });
+    }
 });
 
 module.exports = router;
