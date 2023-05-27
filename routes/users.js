@@ -174,7 +174,7 @@ router.post('/login', async (req, res) => {
 router.post('/logout', async (req, res) => {
     try {
         res.clearCookie('Authorization');
-        res.redirect('/');
+        //res.redirect('/api');
         return res.status(200).json({ message: '로그아웃 성공' });
     } catch {
         return res
