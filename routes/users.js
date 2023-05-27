@@ -60,19 +60,57 @@ router.post('/signup', async (req, res) => {
         }
 
         //닉네임 형식이 비정상적인 경우
+        ///1. 닉네임에 특수문자가 있는 경우
+        const nicknameletter = ['.', '/', '_', '+', '-', '!', '~', '#', '$','%','^','&','*','(',")",'=','?','<','>','"', "'", '`', '|'];
+        let nicknameletterOk = 0;
+        for (let i of nicknameletter) {
+            if (nickname.split(`${i}`).length>1) {
+              nicknameletterOk = 1;
+            }
+        }
+        if (nicknameletterOk) {
+            return res
+                .status(412)
+                .json({ errorMessage: '닉네임의 형식이 올바르지 않습니다' });
+        }
+        ///2.닉네임이 숫자로만 되어있는 경우
+        if(nickname*1){
+          return res
+                .status(412)
+                .json({ errorMessage: '닉네임의 형식이 올바르지 않습니다' });
+        };
 
         //password 형식이 비정상적인 경우
+        ///1. password에 특수문자가 한개 이상 포함되지 않은 경우
+        const passwordletter = ['.', '/', '_', '+', '-', '!', '~', '#', '$','%','^','&','*','(',")",'=','?','<','>','"', "'", '`', '|'];
+        let passwordletterOk = 0;
+        for (let i of passwordletter) {
+            if (password.split(`${i}`).length>1) {
+              passwordletterOk = 1;
+            }
+        }
+        if (!passwordletterOk) {
+            return res
+                .status(412)
+                .json({ errorMessage: '1개 이상의 특수문자를 사용하여 password를 설정해야 합니다.' });
+        }
+
 
         //password에 닉네임이 포함되어있는 경우
+        if(password.split(`${nickname}`).length>1){
+          return res
+                .status(412)
+                .json({ errorMessage: 'password에 nickname포함되어서는 안됩니다.' });
+        }
 
-        // //회원가입
-        // const credit = 10; //처음 제공되는 기본 크레딧 값
-        // // const newUser = await Users.create({
-        // //     email,
-        // //     password,
-        // //     nickname,
-        // //     credit,
-        // // });
+        //회원가입
+        const credit = 10; //처음 제공되는 기본 크레딧 값
+        // const newUser = await Users.create({
+        //     email,
+        //     password,
+        //     nickname,
+        //     credit,
+        // });
         return res.status(201).json({ message: '회원가입 성공' });
     } catch (error) {
         return res
