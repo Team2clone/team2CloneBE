@@ -2,6 +2,36 @@ const express = require('express');
 const router = express.Router();
 const checkLogin = require('../middlewares/checkLogin.js'); //유저아이디받기
 const { Users, Chats, Conversations } = require('../models');
+// openAI API 연결
+const { Configuration, OpenAIApi } = require('openai');
+require('dotenv').config();
+
+// openAI API 함수
+async function callChatGPT(conversation) {
+    const configuration = new Configuration({
+        apiKey: process.env.OPENAI_API_KEY,
+    });
+
+    try {
+        const openai = new OpenAIApi(configuration);
+
+        const response = await openai.createChatCompletion({
+            model: 'gpt-3.5-turbo',
+            messages: conversation,
+            temperature: 0.8,
+        });
+
+        const reply = response.data.choices[0].message;
+        return reply;
+    } catch (error) {
+        console.error('Error calling ChatGPT API:', error);
+        if (error.response) {
+            console.log('Response status:', error.response.status);
+            console.log('Response data:', error.response.data);
+        }
+        return null;
+    }
+}
 
 // ◎  새 대화 생성
 router.post('/chat', checkLogin, async (req, res) => {
@@ -30,9 +60,13 @@ router.post('/chat', checkLogin, async (req, res) => {
             UserId: userId,
             chatName: ask.slice(0, 5),
         });
+
+        // API 사용
+        const reply = await callChatGPT({ role: 'user', content: ask });
+
         res.status(201).json({
             chatId: chat.chatId,
-            answer: 'answer', // chat GPT API 활용
+            answer: reply,
             chatName: chat.chatName,
         });
     } catch (error) {
@@ -142,13 +176,29 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             isGPT: false,
             conversation: ask,
         });
-        // ------ GPT API 부분으로 대체 예정 -------
-        const isGPT = true;
-        const conversation = 'test';
-        // ------ GPT API 부분으로 대체 예정 -------
+        // 이전 대화 불러오기
+        const previousChat = await Conversations.findAll({
+            where: { ChatId: chatId },
+            attributes: ['isGPT', 'conversation'],
+        });
+        // 이전 대화내용을 openAI API 형식에 맞게 변환
+        const conversation = previousChat.map((val) => {
+            return {
+                role: val.isGPT ? 'assistant' : 'user',
+                content: val.conversation,
+            };
+        });
+        // 신규 질문 추가
+        conversation.push({ role: 'user', content: ask });
+        // API 사용
+        const reply = await callChatGPT(conversation);
         // GPT 대화 내용 저장
-        await Conversations.create({ ChatId: chatId, isGPT, conversation });
-        res.status(200).json({ answer: conversation });
+        await Conversations.create({
+            ChatId: chatId,
+            isGPT: true,
+            conversation: reply,
+        });
+        res.status(200).json({ answer: reply });
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);
         return res.status(500).json({
