@@ -14,7 +14,7 @@ app.use('/api', [indexRouter]);
 const cors = require('cors');
 app.use(
     cors({
-        origin: ['https://team2-clone-fe.vercel.app'],
+        origin: ['https://team2-clone-fe.vercel.app', 'http://localhost:3000'],
         credentials: true,
     })
 );
