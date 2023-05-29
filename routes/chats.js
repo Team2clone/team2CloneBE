@@ -62,7 +62,19 @@ router.post('/chat', checkLogin, async (req, res) => {
         });
 
         // API 사용
-        const reply = await callChatGPT({ role: 'user', content: ask });
+        const reply = await callChatGPT([{ role: 'user', content: ask }]);
+        // 사용자 질문 저장
+        await Conversations.create({
+            ChatId: chat.dataValues.chatId,
+            isGPT: false,
+            conversation: ask,
+        });
+        // GPT 답변 내용 저장
+        await Conversations.create({
+            ChatId: chat.dataValues.chatId,
+            isGPT: true,
+            conversation: reply.content,
+        });
 
         res.status(201).json({
             chatId: chat.chatId,
@@ -181,6 +193,7 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             where: { ChatId: chatId },
             attributes: ['isGPT', 'conversation'],
         });
+        
         // 이전 대화내용을 openAI API 형식에 맞게 변환
         const conversation = previousChat.map((val) => {
             return {
@@ -188,6 +201,7 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
                 content: val.conversation,
             };
         });
+        
         // 신규 질문 추가
         conversation.push({ role: 'user', content: ask });
         // API 사용
@@ -196,7 +210,7 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
         await Conversations.create({
             ChatId: chatId,
             isGPT: true,
-            conversation: reply,
+            conversation: reply.content,
         });
         res.status(200).json({ answer: reply });
     } catch (error) {
