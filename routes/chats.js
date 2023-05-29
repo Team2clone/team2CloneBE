@@ -45,12 +45,12 @@ router.post('/chat', checkLogin, async (req, res) => {
         if (typeof ask !== 'string' || ask === '') {
             return res
                 .status(412)
-                .json({ message: '프롬프트를 확인해 주세요' });
+                .json({ errorMsg: '프롬프트를 확인해 주세요' });
         }
         if (user.credit === 0) {
             return res
                 .status(402)
-                .json({ message: '질문에 필요한 크레딧이 부족합니다.' });
+                .json({ errorMsg: '질문에 필요한 크레딧이 부족합니다.' });
         }
 
         user.credit = user.credit - 1;
@@ -190,7 +190,7 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             where: { ChatId: chatId },
             attributes: ['isGPT', 'conversation'],
         });
-        
+
         // 이전 대화내용을 openAI API 형식에 맞게 변환
         const conversation = previousChat.map((val) => {
             return {
@@ -198,7 +198,7 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
                 content: val.conversation,
             };
         });
-        
+
         // 신규 질문 추가
         conversation.push({ role: 'user', content: ask });
         // API 사용
@@ -210,8 +210,8 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             conversation: reply.content,
         });
         // credit 차감
-        user.credit -= 1
-        user.save()
+        user.credit -= 1;
+        user.save();
         res.status(200).json({ answer: reply });
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);
