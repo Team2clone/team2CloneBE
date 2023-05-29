@@ -172,12 +172,21 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
     const { chatId } = req.params;
     const { ask } = req.body;
     try {
+        // 유저의 채팅인지 확인
+        const chat = await Chats.findOne({ where: { chatId } });
+        if (chat.UserId !== userId) {
+            return res.status(401).json({ errorMsg: '조회 권한이 없습니다.' });
+        }
         // 사용자 크레딧 확인
         const user = await Users.findOne({ where: { UserId: userId } });
         if (!user.credit) {
-            res.status(402).json({
+            return res.status(402).json({
                 errorMsg: '질문에 필요한 크레딧이 부족합니다.',
             });
+        }
+        // 사용자 대화 검토
+        if (typeof ask !== 'string' || ask === '') {
+            return res.status(412).json({ errMsg: '프롬프트를 확인해 주세요' });
         }
         // 사용자 대화 저장
         await Conversations.create({
