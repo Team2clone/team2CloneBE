@@ -34,7 +34,6 @@ router.post('/signup', async (req, res) => {
     try {
         const { email, password } = req.body;
 
-
         //이메일이 중복된 경우
         const existEmail = await Users.findOne({
             where: { email },
@@ -75,7 +74,6 @@ router.post('/signup', async (req, res) => {
                 .json({ errorMessage: '이메일의 형식이 올바르지 않습니다' });
         }
 
-
         //password 형식이 비정상적인 경우
         ///1. password에 특수문자가 한개 이상 포함되지 않은 경우
         let passwordletterOk = 0;
@@ -90,7 +88,6 @@ router.post('/signup', async (req, res) => {
                     '1개 이상의 특수문자를 사용하여 password를 설정해야 합니다.',
             });
         }
-
 
         //회원가입
         const credit = 10; //처음 제공되는 기본 크레딧 값
