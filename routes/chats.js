@@ -168,20 +168,17 @@ router.get('/chat', checkLogin, async (req, res) => {
 
 // ◎  대화하기
 router.post('/chat/:chatId', checkLogin, async (req, res) => {
-    //const { userId } = res.locals.user;
+    const { userId } = res.locals.user;
     const { chatId } = req.params;
     const { ask } = req.body;
     try {
         // 사용자 크레딧 확인
-        // const credit = await Users.findOne({
-        //     where: { userId },
-        //     attributes: ['credit'],
-        // });
-        // if (!credit) {
-        //     res.status(402).json({
-        //         errorMsg: '질문에 필요한 크레딧이 부족합니다.',
-        //     });
-        // }
+        const user = await Users.findOne({ where: { UserId: userId } });
+        if (!user.credit) {
+            res.status(402).json({
+                errorMsg: '질문에 필요한 크레딧이 부족합니다.',
+            });
+        }
         // 사용자 대화 저장
         await Conversations.create({
             ChatId: chatId,
@@ -212,6 +209,9 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             isGPT: true,
             conversation: reply.content,
         });
+        // credit 차감
+        user.credit -= 1
+        user.save()
         res.status(200).json({ answer: reply });
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);
