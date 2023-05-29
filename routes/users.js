@@ -3,6 +3,7 @@ const router = express.Router();
 const { Users, Models } = require('../models');
 const jwt = require('jsonwebtoken');
 const checkLogin = require('../middlewares/checkLogin.js'); //유저아이디받기
+const crypto = require('crypto');
 const letter = [
     '.',
     '/',
@@ -61,7 +62,12 @@ router.post('/signup', async (req, res) => {
         }
 
         //2.도메인 형식이 맞지 않는 경우
-        const emailDomain = ['naver.com', 'gmail.com', 'hamail.net'];
+        const emailDomain = [
+            'naver.com',
+            'gmail.com',
+            'hamail.net',
+            'kakao.com',
+        ];
         let emailOk = 0;
         for (let i of emailDomain) {
             if (existAt[1] === i) {
@@ -91,9 +97,15 @@ router.post('/signup', async (req, res) => {
 
         //회원가입
         const credit = 10; //처음 제공되는 기본 크레딧 값
+        //비밀번호 암호화
+        const crypyedPw = crypto
+            .createHash('sha512')
+            .update(password)
+            .digest('base64');
+
         const newUser = await Users.create({
             email,
-            password,
+            password: crypyedPw,
             credit,
         });
         return res.status(201).json({ message: '회원가입 성공' });
@@ -111,16 +123,23 @@ router.post('/login', async (req, res) => {
         const loginUser = await Users.findOne({
             where: { email },
         });
+        //패스워드 암호화
+        const crypyedPw = crypto
+            .createHash('sha512')
+            .update(password)
+            .digest('base64');
 
         //디비에 저장된 이메일이 없거나 패스워드가 틀린 경우
-        if (!loginUser || password !== loginUser.password) {
+        if (!loginUser || crypyedPw !== loginUser.password) {
             return res
                 .status(412)
                 .json({ errorMessage: '이메일 또는 패스워드를 확인해주세요.' });
         }
 
         //토큰 보내주기
-        const token = jwt.sign({ userId: loginUser.userId }, 'chatGPT_key');
+        const token = jwt.sign({ userId: loginUser.userId }, 'chatGPT_key', {
+            expiresIn: '1d',
+        });
         res.cookie('Authorization', `Bearer ${token}`);
         return res
             .status(200)
