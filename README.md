@@ -1,6 +1,6 @@
 # ChapGPT
 
-This is the backend repository for the ChatGPT clone project named ChapGPT.
+This is the backend repository for the ChatGPT clone project named ChapGPT(짭GPT).
 
 ## Table of Contents
 
