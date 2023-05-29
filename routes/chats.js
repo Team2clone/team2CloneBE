@@ -69,7 +69,8 @@ router.get('/chat', checkLogin, async (req, res) => {
         const past7 = new Date(koreaNow.getTime() - 6.048e8); // 7일 전
         const past30 = new Date(koreaNow.getTime() - 2.592e9); // 30일 전
 
-        let [today, yesterday, previous7Days, previous30Days] = [
+        let [today, yesterday, previous7Days, previous30Days, onMayJune] = [
+            [],
             [],
             [],
             [],
@@ -96,6 +97,11 @@ router.get('/chat', checkLogin, async (req, res) => {
                     chatId: chat.chatId,
                     chatName: chat.chatName,
                 }); // updatedAt이 30일 이내라면 previous30Days 배열에 push
+            } else if (koreanUpdatedAt <= past30) {
+                onMayJune.push({
+                    chatId: chat.chatId,
+                    chatName: chat.chatName,
+                }); // updatedAt이 30일 전보다 과거 시간이라면 onMayJune 배열에 push
             }
         });
         const result = {
@@ -103,6 +109,7 @@ router.get('/chat', checkLogin, async (req, res) => {
             yesterday,
             previous7Days,
             previous30Days,
+            onMayJune,
         };
         return res.status(200).json({ data: result });
     } catch (error) {
@@ -153,6 +160,8 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
 // ◎  대화내용 조회
 router.get('/chat/:chatId', checkLogin, async (req, res) => {
     const { chatId } = req.params;
+    const { userId } = res.locals.user;
+
     try {
         const chat = await Chats.findOne({ where: { chatId } });
         if (!chat) {
@@ -160,7 +169,9 @@ router.get('/chat/:chatId', checkLogin, async (req, res) => {
                 .status(404)
                 .json({ errorMsg: '해당 채팅을 찾을 수 없습니다.' });
         }
-
+        if (chat.UserId !== userId) {
+            return res.status(401).json({ errorMsg: '조회 권한이 없습니다.' });
+        }
         const conversations = await Conversations.findAll({
             where: { ChatId: chatId },
             attributes: ['conversationId', 'isGPT', 'conversation'],
@@ -180,6 +191,8 @@ router.get('/chat/:chatId', checkLogin, async (req, res) => {
 router.put('/chat/:chatId', checkLogin, async (req, res) => {
     const { chatId } = req.params;
     const { newChatName } = req.body;
+    const { userId } = res.locals.user;
+
     try {
         // 해당 chat 존재 여부 확인
         const chat = await Chats.findOne({ where: { chatId } });
@@ -188,6 +201,10 @@ router.put('/chat/:chatId', checkLogin, async (req, res) => {
                 .status(404)
                 .json({ errorMsg: '해당 채팅을 찾을 수 없습니다.' });
         }
+        if (chat.UserId !== userId) {
+            return res.status(401).json({ errorMsg: '수정 권한이 없습니다.' });
+        }
+
         // 제목 변경
         chat.chatName = newChatName;
         // 저장
@@ -206,6 +223,8 @@ router.put('/chat/:chatId', checkLogin, async (req, res) => {
 router.delete('/chat/:chatId', checkLogin, async (req, res) => {
     const { chatId } = req.params;
     const { newChatName } = req.body;
+    const { userId } = res.locals.user;
+
     try {
         // 해당 chat 존재 여부 확인
         const chat = await Chats.findOne({ where: { chatId } });
@@ -213,6 +232,9 @@ router.delete('/chat/:chatId', checkLogin, async (req, res) => {
             return res
                 .status(404)
                 .json({ errorMsg: '해당 채팅을 찾을 수 없습니다.' });
+        }
+        if (chat.UserId !== userId) {
+            return res.status(401).json({ errorMsg: '삭제 권한이 없습니다.' });
         }
         // 삭제
         await Chats.destroy({ where: { chatId } });
