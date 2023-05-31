@@ -65,7 +65,7 @@ router.post('/signup', async (req, res) => {
         const emailDomain = [
             'naver.com',
             'gmail.com',
-            'hamail.net',
+            'hanmail.net',
             'kakao.com',
         ];
         let emailOk = 0;
