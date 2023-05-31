@@ -136,11 +136,24 @@ router.post('/login', async (req, res) => {
                 .json({ errorMessage: '이메일 또는 패스워드를 확인해주세요.' });
         }
 
-        //토큰 보내주기
+        //jwt
         const token = jwt.sign({ userId: loginUser.userId }, 'chatGPT_key', {
             expiresIn: '1d',
         });
-        res.cookie('Authorization', `Bearer ${token}`);
+        //쿠키보내기
+        res.cookie('Authorization', `Bearer ${token}`),
+            {
+                secure: true,
+                maxAge: 3600000,
+                httpOnly: true,
+                sameSite: 'none',
+                domain: '.gptclone.cz',
+            };
+
+        //헤더에 JWT 넣기
+        res.set({ Authorization: `Bearer ${token}` });
+
+        //토큰보내기
         return res
             .status(200)
             .json({ token: `Bearer ${token}`, message: '로그인 성공' });
