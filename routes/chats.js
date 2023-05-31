@@ -33,6 +33,15 @@ async function callChatGPT(conversation) {
     }
 }
 
+// 응답 객체
+class ApiResponse {
+    constructor(code, message = '', data = {}) {
+        this.code = code;
+        this.message = message;
+        this.data = data;
+    }
+}
+
 // ◎  새 대화 생성
 router.post('/chat', checkLogin, async (req, res) => {
     // 로그인을 확인하는 authMiddleware를 거침.
@@ -298,22 +307,27 @@ router.delete('/chat/:chatId', checkLogin, async (req, res) => {
         // 해당 chat 존재 여부 확인
         const chat = await Chats.findOne({ where: { chatId } });
         if (!chat) {
-            return res
-                .status(404)
-                .json({ errorMsg: '해당 채팅을 찾을 수 없습니다.' });
+            const response = new ApiResponse(
+                404,
+                '해당 채팅을 찾을 수 없습니다.'
+            );
+            return res.status(404).json(response);
         }
         if (chat.UserId !== userId) {
-            return res.status(401).json({ errorMsg: '삭제 권한이 없습니다.' });
+            const response = new ApiResponse(401, '삭제 권한이 없습니다.');
+            return res.status(401).json(response);
         }
         // 삭제
         await Chats.destroy({ where: { chatId } });
-        return res.status(200).json({ msg: '대화를 삭제했습니다.' });
+        const response = new ApiResponse(200, '대화를 삭제했습니다.');
+        return res.status(200).json(response);
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);
-
-        return res.status(500).json({
-            errorMsg: '예상하지 못한 서버 문제가 발생했습니다.',
-        });
+        const response = new ApiResponse(
+            500,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        return res.status(500).json(response);
     }
 });
 
