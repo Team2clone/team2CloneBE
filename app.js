@@ -2,6 +2,7 @@ const env = require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const app = express();
+const { Users } = require('./models');
 
 const indexRouter = require('./routes/index.js');
 

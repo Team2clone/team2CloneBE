@@ -94,15 +94,11 @@ router.get('/chat', checkLogin, async (req, res) => {
     const { userId } = res.locals.user;
     try {
         const chats = await Chats.findAll({
+            // 테스트할것 진짜되나
             attributes: ['chatId', 'chatName', 'updatedAt'],
             where: { UserId: userId },
             order: [['updatedAt', 'DESC']],
         });
-        if (!chats) {
-            return res
-                .status(404)
-                .json({ errorMsg: '유저의 채팅을 찾을 수 없습니다.' });
-        }
 
         const utcNow = new Date(); // UTC 시간대
         const koreaNow = new Date(utcNow.getTime() + 3.24e7); // 한국시간
