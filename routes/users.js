@@ -141,18 +141,17 @@ router.post('/login', async (req, res) => {
             expiresIn: '1d',
         });
         //쿠키보내기
-        res.cookie('Authorization', `Bearer ${token}`)
-,
+        res.cookie('Authorization', `Bearer ${token}`),
             {
                 secure: true,
                 maxAge: 3600000,
                 httpOnly: true,
                 sameSite: 'none',
-                domain: '.gptclone.cz'
+                domain: '.gptclone.cz',
             };
 
         //헤더에 JWT 넣기
-        res.set({ Authorization: `Bearer ${token}`});
+        res.set({ Authorization: `Bearer ${token}` });
 
         //토큰보내기
         return res
@@ -163,7 +162,7 @@ router.post('/login', async (req, res) => {
             .status(500)
             .json({ errorMessage: '예상하지 못한 서버 문제가 발생했습니다.' });
     }
-})
+});
 
 // ◎  로그아웃 API
 router.post('/logout', checkLogin, async (req, res) => {
