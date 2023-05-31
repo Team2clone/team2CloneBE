@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const checkLogin = require('../middlewares/checkLogin.js'); //유저아이디받기
-const { Users, Chats, Conversations } = require('../models');
+const { Users, Chats, Conversations, Credits } = require('../models');
 // openAI API 연결
 const { Configuration, OpenAIApi } = require('openai');
 require('dotenv').config();
@@ -56,15 +56,15 @@ router.post('/chat', checkLogin, async (req, res) => {
                 .status(412)
                 .json({ errorMsg: '프롬프트를 확인해 주세요' });
         }
-        if (user.credit === 0) {
-            return res
-                .status(402)
-                .json({ errorMsg: '질문에 필요한 크레딧이 부족합니다.' });
+        // 사용자 크레딧 확인
+        const credit = await Credits.findOne({ where: { UserId: userId } });
+        if (credit.credit === 0) {
+            return res.status(402).json({
+                errorMsg: '질문에 필요한 크레딧이 부족합니다.',
+            });
         }
-
-        user.credit = user.credit - 1;
-        await user.save();
-
+        credit.credit -= 1;
+        credit.save();
         const chat = await Chats.create({
             UserId: userId,
             chatName: ask.slice(0, 5),
@@ -183,8 +183,8 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             return res.status(401).json({ errorMsg: '조회 권한이 없습니다.' });
         }
         // 사용자 크레딧 확인
-        const user = await Users.findOne({ where: { UserId: userId } });
-        if (!user.credit) {
+        const credit = await Credits.findOne({ where: { UserId: userId } });
+        if (credit.credit === 0) {
             return res.status(402).json({
                 errorMsg: '질문에 필요한 크레딧이 부족합니다.',
             });
@@ -224,8 +224,8 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             conversation: reply.content,
         });
         // credit 차감
-        user.credit -= 1;
-        user.save();
+        credit.credit -= 1;
+        credit.save();
         res.status(200).json({ answer: reply });
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);

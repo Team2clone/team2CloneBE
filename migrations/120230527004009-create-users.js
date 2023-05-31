@@ -19,10 +19,7 @@ module.exports = {
                 allowNull: false, // NOT NULL
                 type: Sequelize.STRING,
             },
-            credit: {
-                allowNull: false, // NOT NULL
-                type: Sequelize.INTEGER,
-            },
+
             createdAt: {
                 allowNull: false,
                 type: Sequelize.DATE,
