@@ -30,6 +30,15 @@ const letter = [
     '|',
 ];
 
+// 응답 객체
+class ApiResponse {
+    constructor(code, message = '', data = {}) {
+        this.code = code;
+        this.message = message;
+        this.data = data;
+    }
+}
+
 // ◎  회원가입 API
 router.post('/signup', async (req, res) => {
     try {
@@ -40,9 +49,8 @@ router.post('/signup', async (req, res) => {
             where: { email },
         });
         if (existEmail) {
-            return res
-                .status(412)
-                .json({ errorMessage: '이미 등록된 이메일입니다.' });
+            const response = new ApiResponse(412, '이미 등록된 이메일입니다.');
+            return res.status(412).json(response);
         }
 
         //이메일 형식이 비정상적인 경우
@@ -56,9 +64,11 @@ router.post('/signup', async (req, res) => {
             }
         }
         if (emailletterOk) {
-            return res
-                .status(412)
-                .json({ errorMessage: '이메일의 형식이 올바르지 않습니다' });
+            const response = new ApiResponse(
+                412,
+                '이메일의 형식이 올바르지 않습니다'
+            );
+            return res.status(412).json(response);
         }
 
         //2.도메인 형식이 맞지 않는 경우
@@ -75,9 +85,11 @@ router.post('/signup', async (req, res) => {
             }
         }
         if (!emailOk) {
-            return res
-                .status(412)
-                .json({ errorMessage: '이메일의 형식이 올바르지 않습니다' });
+            const response = new ApiResponse(
+                412,
+                '이메일의 형식이 올바르지 않습니다'
+            );
+            return res.status(412).json(response);
         }
 
         //password 형식이 비정상적인 경우
@@ -89,10 +101,11 @@ router.post('/signup', async (req, res) => {
             }
         }
         if (!passwordletterOk) {
-            return res.status(412).json({
-                errorMessage:
-                    '1개 이상의 특수문자를 사용하여 password를 설정해야 합니다.',
-            });
+            const response = new ApiResponse(
+                412,
+                '1개 이상의 특수문자를 사용하여 password를 설정해야 합니다.'
+            );
+            return res.status(412).json(response);
         }
 
         //회원가입
@@ -111,12 +124,14 @@ router.post('/signup', async (req, res) => {
             credit,
             UserId: newUser.userId,
         });
-
-        return res.status(201).json({ message: '회원가입 성공' });
+        const response = new ApiResponse(201, '회원가입 성공');
+        return res.status(201).json(response);
     } catch (error) {
-        return res
-            .status(500)
-            .json({ errorMessage: '예상하지 못한 서버 문제가 발생했습니다.' });
+        const response = new ApiResponse(
+            500,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        return res.status(500).json(response);
     }
 });
 
@@ -135,9 +150,11 @@ router.post('/login', async (req, res) => {
 
         //디비에 저장된 이메일이 없거나 패스워드가 틀린 경우
         if (!loginUser || crypyedPw !== loginUser.password) {
-            return res
-                .status(412)
-                .json({ errorMessage: '이메일 또는 패스워드를 확인해주세요.' });
+            const response = new ApiResponse(
+                412,
+                '이메일 또는 패스워드를 확인해주세요.'
+            );
+            return res.status(412).json(response);
         }
 
         //jwt
@@ -158,13 +175,16 @@ router.post('/login', async (req, res) => {
         res.set({ Authorization: `Bearer ${token}` });
 
         //토큰보내기
-        return res
-            .status(200)
-            .json({ token: `Bearer ${token}`, message: '로그인 성공' });
+        const response = new ApiResponse(200, '로그인 성공', {
+            Authorization: `Bearer ${token}`,
+        });
+        return res.status(200).json(response);
     } catch (error) {
-        return res
-            .status(500)
-            .json({ errorMessage: '예상하지 못한 서버 문제가 발생했습니다.' });
+        const response = new ApiResponse(
+            500,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        return res.status(500).json(response);
     }
 });
 
@@ -173,11 +193,14 @@ router.post('/logout', checkLogin, async (req, res) => {
     try {
         res.clearCookie('Authorization');
         //res.redirect('/api');
-        return res.status(200).json({ message: '로그아웃 성공' });
+        const response = new ApiResponse(200, '로그아웃 성공');
+        return res.status(200).json(response);
     } catch {
-        return res
-            .status(500)
-            .json({ errorMessage: '예상하지 못한 서버 문제가 발생했습니다.' });
+        const response = new ApiResponse(
+            500,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        return res.status(500).json(response);
     }
 });
 
@@ -190,11 +213,13 @@ router.get('/credit', checkLogin, async (req, res) => {
             attributes: ['credit'],
             where: { userId },
         });
-        return res.status(200).json({ mycredit: mycredit.credit });
+        const response = new ApiResponse(200, '', {
+            mycredit: mycredit.dataValues.credit,
+        });
+        return res.status(200).json(response);
     } catch {
-        return res
-            .status(500)
-            .json({ errorMessage: '크레딧 조회에 실패했습니다' });
+        const response = new ApiResponse(500, '크레딧 조회에 실패했습니다');
+        return res.status(500).json(response);
     }
 });
 
