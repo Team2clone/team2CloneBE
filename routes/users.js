@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { Users, Models } = require('../models');
+const { Users, Credits } = require('../models');
 const jwt = require('jsonwebtoken');
 const checkLogin = require('../middlewares/checkLogin.js'); //유저아이디받기
 const crypto = require('crypto');
@@ -106,8 +106,12 @@ router.post('/signup', async (req, res) => {
         const newUser = await Users.create({
             email,
             password: crypyedPw,
-            credit,
         });
+        const newUserCredit = await Credits.create({
+            credit,
+            UserId: newUser.userId,
+        });
+
         return res.status(201).json({ message: '회원가입 성공' });
     } catch (error) {
         return res
