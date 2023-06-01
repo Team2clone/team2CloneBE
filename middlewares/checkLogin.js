@@ -3,7 +3,7 @@ const { Users } = require('../models');
 
 module.exports = async (req, res, next) => {
     try {
-        const { Authorization } = req.cookies;
+        const Authorization = req.get('Authorization');
 
         //토큰이 있는지 확인
         if (!Authorization) {
