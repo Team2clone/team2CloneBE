@@ -14,7 +14,6 @@ async function callChatGPT(conversation) {
 
     try {
         const openai = new OpenAIApi(configuration);
-
         const response = await openai.createChatCompletion({
             model: 'gpt-3.5-turbo',
             messages: conversation,
@@ -259,6 +258,7 @@ router.get('/chat/:chatId', checkLogin, async (req, res) => {
     const { userId } = res.locals.user;
 
     try {
+        // 해당 채팅 존재 확인
         const chat = await Chats.findOne({ where: { chatId } });
         if (!chat) {
             const response = new ApiResponse(
@@ -267,6 +267,7 @@ router.get('/chat/:chatId', checkLogin, async (req, res) => {
             );
             return res.status(404).json(response);
         }
+        // 유저 일치 여부 확인
         if (chat.UserId !== userId) {
             const response = new ApiResponse(401, '조회 권한이 없습니다.');
             return res.status(401).json(response);
@@ -275,7 +276,7 @@ router.get('/chat/:chatId', checkLogin, async (req, res) => {
             where: { ChatId: chatId },
             attributes: ['conversationId', 'isGPT', 'conversation'],
         });
-
+        // 조회 결과 응답
         const response = new ApiResponse(200, '', conversations);
         return res.status(200).json(response);
     } catch (error) {
@@ -304,15 +305,16 @@ router.put('/chat/:chatId', checkLogin, async (req, res) => {
             );
             return res.status(404).json(response);
         }
+        // 유저 일치 여부 확인
         if (chat.UserId !== userId) {
             const response = new ApiResponse(401, '수정 권한이 없습니다.');
             return res.status(401).json(response);
         }
 
-        // 제목 변경
+        // 제목 수정 및 저장
         chat.chatName = newChatName;
-        // 저장
         await chat.save();
+        // 수정 응답
         const response = new ApiResponse(200, '대화 제목을 수정했습니다.');
         return res.status(200).json(response);
     } catch (error) {
@@ -341,12 +343,14 @@ router.delete('/chat/:chatId', checkLogin, async (req, res) => {
             );
             return res.status(404).json(response);
         }
+        // 유저 일치 여부 확인
         if (chat.UserId !== userId) {
             const response = new ApiResponse(401, '삭제 권한이 없습니다.');
             return res.status(401).json(response);
         }
         // 삭제
         await Chats.destroy({ where: { chatId } });
+        // 삭제 응답
         const response = new ApiResponse(200, '대화를 삭제했습니다.');
         return res.status(200).json(response);
     } catch (error) {
