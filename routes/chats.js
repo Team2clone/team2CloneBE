@@ -49,7 +49,6 @@ router.post('/chat', checkLogin, async (req, res) => {
         //
         const { userId } = res.locals.user;
         const { ask } = req.body;
-        const user = await Users.findOne({ where: { UserId: userId } });
 
         if (typeof ask !== 'string' || ask === '') {
             return res
@@ -63,8 +62,6 @@ router.post('/chat', checkLogin, async (req, res) => {
                 errorMsg: '질문에 필요한 크레딧이 부족합니다.',
             });
         }
-        credit.credit -= 1;
-        credit.save();
         const chat = await Chats.create({
             UserId: userId,
             chatName: ask.slice(0, 5),
@@ -85,6 +82,10 @@ router.post('/chat', checkLogin, async (req, res) => {
             conversation: reply.content,
         });
 
+        // 크레딧 차감(답변 받은 후 차감, 시간 되면 transaction으로 처리 필요)
+        credit.credit -= 1;
+        credit.save();
+        
         res.status(201).json({
             chatId: chat.chatId,
             answer: reply,
