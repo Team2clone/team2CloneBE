@@ -14,7 +14,6 @@ async function callChatGPT(conversation) {
 
     try {
         const openai = new OpenAIApi(configuration);
-
         const response = await openai.createChatCompletion({
             model: 'gpt-3.5-turbo',
             messages: conversation,
@@ -49,7 +48,6 @@ router.post('/chat', checkLogin, async (req, res) => {
         //
         const { userId } = res.locals.user;
         const { ask } = req.body;
-        const user = await Users.findOne({ where: { UserId: userId } });
 
         if (typeof ask !== 'string' || ask === '') {
             return res
@@ -63,8 +61,6 @@ router.post('/chat', checkLogin, async (req, res) => {
                 errorMsg: '질문에 필요한 크레딧이 부족합니다.',
             });
         }
-        credit.credit -= 1;
-        credit.save();
         const chat = await Chats.create({
             UserId: userId,
             chatName: ask.slice(0, 5),
@@ -85,16 +81,23 @@ router.post('/chat', checkLogin, async (req, res) => {
             conversation: reply.content,
         });
 
-        res.status(201).json({
+        // 크레딧 차감(답변 받은 후 차감, 시간 되면 transaction으로 처리 필요)
+        credit.credit -= 1;
+        credit.save();
+
+        const response = new ApiResponse(201, '', {
             chatId: chat.chatId,
             answer: reply,
             chatName: chat.chatName,
         });
+        res.status(201).json(response);
     } catch (error) {
         console.error(`[POST] /chat ${error}`);
-        res.status(400).json({
-            message: '예상하지 못한 서버 문제가 발생했습니다.',
-        });
+        const response = new ApiResponse(
+            400,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        res.status(400).json(response);
     }
 });
 
@@ -162,12 +165,16 @@ router.get('/chat', checkLogin, async (req, res) => {
             previous30Days,
             onMayJune,
         };
-        return res.status(200).json({ data: result });
+
+        const response = new ApiResponse(200, '', result);
+        return res.status(200).json(response);
     } catch (error) {
         console.error(`[GET] /chat/ with ${error}`);
-        return res.status(500).json({
-            errorMsg: '예상하지 못한 서버 문제가 발생했습니다.',
-        });
+        const response = new ApiResponse(
+            500,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        return res.status(500).json(response);
     }
 });
 
@@ -180,18 +187,22 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
         // 유저의 채팅인지 확인
         const chat = await Chats.findOne({ where: { chatId } });
         if (chat.UserId !== userId) {
-            return res.status(401).json({ errorMsg: '조회 권한이 없습니다.' });
+            const response = new ApiResponse(401, '조회 권한이 없습니다.');
+            return res.status(401).json(response);
         }
         // 사용자 크레딧 확인
         const credit = await Credits.findOne({ where: { UserId: userId } });
         if (credit.credit === 0) {
-            return res.status(402).json({
-                errorMsg: '질문에 필요한 크레딧이 부족합니다.',
-            });
+            const response = new ApiResponse(
+                402,
+                '질문에 필요한 크레딧이 부족합니다.'
+            );
+            return res.status(402).json(response);
         }
         // 사용자 대화 검토
         if (typeof ask !== 'string' || ask === '') {
-            return res.status(412).json({ errMsg: '프롬프트를 확인해 주세요' });
+            const response = new ApiResponse(412, '프롬프트를 확인해 주세요');
+            return res.status(412).json(response);
         }
         // 사용자 대화 저장
         await Conversations.create({
@@ -223,15 +234,21 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             isGPT: true,
             conversation: reply.content,
         });
+
         // credit 차감
         credit.credit -= 1;
         credit.save();
-        res.status(200).json({ answer: reply });
+
+        // 응답
+        const response = new ApiResponse(200, '', { answer: reply.content });
+        res.status(200).json(response);
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);
-        return res.status(500).json({
-            errorMsg: '예상하지 못한 서버 문제가 발생했습니다.',
-        });
+        const response = new ApiResponse(
+            500,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        return res.status(500).json(response);
     }
 });
 
@@ -241,27 +258,34 @@ router.get('/chat/:chatId', checkLogin, async (req, res) => {
     const { userId } = res.locals.user;
 
     try {
+        // 해당 채팅 존재 확인
         const chat = await Chats.findOne({ where: { chatId } });
         if (!chat) {
-            return res
-                .status(404)
-                .json({ errorMsg: '해당 채팅을 찾을 수 없습니다.' });
+            const response = new ApiResponse(
+                404,
+                '해당 채팅을 찾을 수 없습니다.'
+            );
+            return res.status(404).json(response);
         }
+        // 유저 일치 여부 확인
         if (chat.UserId !== userId) {
-            return res.status(401).json({ errorMsg: '조회 권한이 없습니다.' });
+            const response = new ApiResponse(401, '조회 권한이 없습니다.');
+            return res.status(401).json(response);
         }
         const conversations = await Conversations.findAll({
             where: { ChatId: chatId },
             attributes: ['conversationId', 'isGPT', 'conversation'],
         });
-
-        return res.status(200).json({ conversations });
+        // 조회 결과 응답
+        const response = new ApiResponse(200, '', conversations);
+        return res.status(200).json(response);
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);
-
-        return res.status(500).json({
-            errorMsg: '예상하지 못한 서버 문제가 발생했습니다.',
-        });
+        const response = new ApiResponse(
+            500,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        return res.status(500).json(response);
     }
 });
 
@@ -275,25 +299,31 @@ router.put('/chat/:chatId', checkLogin, async (req, res) => {
         // 해당 chat 존재 여부 확인
         const chat = await Chats.findOne({ where: { chatId } });
         if (!chat) {
-            return res
-                .status(404)
-                .json({ errorMsg: '해당 채팅을 찾을 수 없습니다.' });
+            const response = new ApiResponse(
+                404,
+                '해당 채팅을 찾을 수 없습니다.'
+            );
+            return res.status(404).json(response);
         }
+        // 유저 일치 여부 확인
         if (chat.UserId !== userId) {
-            return res.status(401).json({ errorMsg: '수정 권한이 없습니다.' });
+            const response = new ApiResponse(401, '수정 권한이 없습니다.');
+            return res.status(401).json(response);
         }
 
-        // 제목 변경
+        // 제목 수정 및 저장
         chat.chatName = newChatName;
-        // 저장
         await chat.save();
-        return res.status(200).json({ msg: '대화 제목을 수정했습니다.' });
+        // 수정 응답
+        const response = new ApiResponse(200, '대화 제목을 수정했습니다.');
+        return res.status(200).json(response);
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);
-
-        return res.status(500).json({
-            errorMsg: '예상하지 못한 서버 문제가 발생했습니다.',
-        });
+        const response = new ApiResponse(
+            500,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        return res.status(500).json(response);
     }
 });
 
@@ -313,12 +343,14 @@ router.delete('/chat/:chatId', checkLogin, async (req, res) => {
             );
             return res.status(404).json(response);
         }
+        // 유저 일치 여부 확인
         if (chat.UserId !== userId) {
             const response = new ApiResponse(401, '삭제 권한이 없습니다.');
             return res.status(401).json(response);
         }
         // 삭제
         await Chats.destroy({ where: { chatId } });
+        // 삭제 응답
         const response = new ApiResponse(200, '대화를 삭제했습니다.');
         return res.status(200).json(response);
     } catch (error) {
