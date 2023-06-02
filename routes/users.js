@@ -192,7 +192,6 @@ router.post('/login', async (req, res) => {
 router.post('/logout', checkLogin, async (req, res) => {
     try {
         res.clearCookie('Authorization');
-        //res.redirect('/api');
         const response = new ApiResponse(200, '로그아웃 성공');
         return res.status(200).json(response);
     } catch {
@@ -209,7 +208,7 @@ router.get('/credit', checkLogin, async (req, res) => {
     try {
         const { userId } = res.locals.user;
 
-        const mycredit = await Users.findOne({
+        const mycredit = await Credits.findOne({
             attributes: ['credit'],
             where: { userId },
         });
