@@ -3,8 +3,7 @@ const { Users } = require('../models');
 
 module.exports = async (req, res, next) => {
     try {
-        const Authorization = req.get('Authorization');
-
+        const Authorization = req.header('Authorization');
         //토큰이 있는지 확인
         if (!Authorization) {
             return res
