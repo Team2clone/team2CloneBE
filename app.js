@@ -9,7 +9,6 @@ const indexRouter = require('./routes/index.js');
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use('/api', [indexRouter]);
 
 // CORS 설정
 const cors = require('cors');
@@ -18,6 +17,8 @@ app.use(
         origin: ['https://team2-clone-fe.vercel.app', 'http://localhost:3000']
     })
 );
+
+app.use('/api', [indexRouter]);
 
 app.get('/', (req, res) => {
     res.status(200).send('chatGPT clone API');
