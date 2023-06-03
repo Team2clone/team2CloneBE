@@ -8,16 +8,16 @@ const indexRouter = require('./routes/index.js');
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
-app.use('/api', [indexRouter]);
 
 // CORS 미들웨어 함수 정의
 const allowCrossDomain = (req, res, next) => {
     res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, withcredentials');
     // preflight 요청에 대한 처리
     if (req.method === 'OPTIONS') {
+        res.header('Access-Control-Allow-Origin', req.headers.origin);
         res.sendStatus(200);
     } else {
         next();
@@ -26,7 +26,7 @@ const allowCrossDomain = (req, res, next) => {
 
 // CORS 미들웨어 사용
 app.use(allowCrossDomain);
-
+app.use('/api', indexRouter);
 app.get('/', (req, res) => {
     res.status(200).send('chatGPT clone API');
 });
