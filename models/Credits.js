@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
     }
     Credits.init(
         {
-            creditId: {
+            id: {
                 allowNull: false,
                 autoIncrement: true,
                 primaryKey: true,
