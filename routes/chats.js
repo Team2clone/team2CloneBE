@@ -44,60 +44,67 @@ class ApiResponse {
 // ◎  새 대화 생성
 router.post('/chat', checkLogin, async (req, res) => {
     // 로그인을 확인하는 authMiddleware를 거침.
-    // try {
-    //
-    const { userId } = res.locals.user;
-    const { ask } = req.body;
+    try {
+        const { userId } = res.locals.user;
+        const { ask } = req.body;
 
-    if (typeof ask !== 'string' || ask === '') {
-        return res.status(412).json({ errorMsg: '프롬프트를 확인해 주세요' });
-    }
-    // 사용자 크레딧 확인
-    const credit = await Credits.findOne({ where: { UserId: userId } });
-    console.log(userId);
-    if (credit.credit === 0) {
-        return res.status(402).json({
-            errorMsg: '질문에 필요한 크레딧이 부족합니다.',
+        if (typeof ask !== 'string' || ask === '') {
+            return res
+                .status(412)
+                .json({ errorMsg: '프롬프트를 확인해 주세요' });
+        }
+        // 사용자 크레딧 확인
+        const credit = await Credits.findOne({ where: { UserId: userId } });
+        console.log(userId);
+        if (credit.credit === 0) {
+            return res.status(402).json({
+                errorMsg: '질문에 필요한 크레딧이 부족합니다.',
+            });
+        }
+        const askArr = ask.split(' ');
+        const slicedAsk =
+            askArr.slice(0, 3).join(' ').length >= 15
+                ? ask.slice(0, 15)
+                : askArr.slice(0, 3).join(' ');
+
+        const chat = await Chats.create({
+            UserId: userId,
+            chatName: slicedAsk,
         });
+
+        // API 사용
+        const reply = await callChatGPT([{ role: 'user', content: ask }]);
+        // 사용자 질문 저장
+        await Conversations.create({
+            ChatId: chat.dataValues.chatId,
+            isGPT: false,
+            conversation: ask,
+        });
+        // GPT 답변 내용 저장
+        await Conversations.create({
+            ChatId: chat.dataValues.chatId,
+            isGPT: true,
+            conversation: reply.content,
+        });
+
+        // 크레딧 차감(답변 받은 후 차감, 시간 되면 transaction으로 처리 필요)
+        credit.credit -= 1;
+        credit.save();
+
+        const response = new ApiResponse(201, '', {
+            chatId: chat.chatId,
+            answer: reply.content,
+            chatName: chat.chatName,
+        });
+        res.status(201).json(response);
+    } catch (error) {
+        console.error(`[POST] /chat ${error}`);
+        const response = new ApiResponse(
+            500,
+            '예상하지 못한 서버 문제가 발생했습니다.'
+        );
+        res.status(400).json(response);
     }
-    const chat = await Chats.create({
-        UserId: userId,
-        chatName: ask.slice(0, 5),
-    });
-
-    // API 사용
-    const reply = await callChatGPT([{ role: 'user', content: ask }]);
-    // 사용자 질문 저장
-    await Conversations.create({
-        ChatId: chat.dataValues.chatId,
-        isGPT: false,
-        conversation: ask,
-    });
-    // GPT 답변 내용 저장
-    await Conversations.create({
-        ChatId: chat.dataValues.chatId,
-        isGPT: true,
-        conversation: reply.content,
-    });
-
-    // 크레딧 차감(답변 받은 후 차감, 시간 되면 transaction으로 처리 필요)
-    credit.credit -= 1;
-    credit.save();
-
-    const response = new ApiResponse(201, '', {
-        chatId: chat.chatId,
-        answer: reply.content,
-        chatName: chat.chatName,
-    });
-    res.status(201).json(response);
-    // } catch (error) {
-    //     console.error(`[POST] /chat ${error}`);
-    //     const response = new ApiResponse(
-    //         400,
-    //         '예상하지 못한 서버 문제가 발생했습니다.'
-    //     );
-    //     res.status(400).json(response);
-    // }
 });
 
 // ◎  전체 대화 목록 조회

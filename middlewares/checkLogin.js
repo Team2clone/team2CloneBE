@@ -12,7 +12,7 @@ module.exports = async (req, res, next) => {
         }
 
         const [authType, authToken] = Authorization.split(' ');
-        console.log(Authorization, authType, authToken);
+        // console.log(Authorization, authType, authToken);
 
         //authTyep === Bearer인지 확인
         if (authType !== 'Bearer' || !authToken) {
@@ -22,6 +22,7 @@ module.exports = async (req, res, next) => {
         //
         const { userId } = jwt.verify(authToken, 'chatGPT_key');
         const user = await Users.findOne({ where: { userId } });
+        console.log(userId);
 
         res.locals.user = user;
         next();
