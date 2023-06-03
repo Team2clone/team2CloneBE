@@ -61,9 +61,15 @@ router.post('/chat', checkLogin, async (req, res) => {
                 errorMsg: '질문에 필요한 크레딧이 부족합니다.',
             });
         }
+        const askArr = ask.split(' ');
+        const slicedAsk =
+            askArr.slice(0, 3).join(' ').length >= 15
+                ? ask.slice(0, 15)
+                : askArr.slice(0, 3).join(' ');
+
         const chat = await Chats.create({
             UserId: userId,
-            chatName: ask.slice(0, 5),
+            chatName: slicedAsk,
         });
 
         // API 사용

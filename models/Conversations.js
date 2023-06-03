@@ -38,7 +38,7 @@ module.exports = (sequelize, DataTypes) => {
             },
             conversation: {
                 allowNull: false,
-                type: DataTypes.STRING,
+                type: DataTypes.TEXT,
             },
             createdAt: {
                 allowNull: false,
