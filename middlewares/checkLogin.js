@@ -20,7 +20,7 @@ module.exports = async (req, res, next) => {
         }
 
         //
-        const userId = jwt.verify(authToken, 'chatGPT_key');
+        const { userId } = jwt.verify(authToken, 'chatGPT_key');
         const user = await Users.findOne({ where: { userId } });
         console.log(userId);
 
