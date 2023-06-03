@@ -127,6 +127,7 @@ router.post('/signup', async (req, res) => {
         const response = new ApiResponse(201, '회원가입 성공');
         return res.status(201).json(response);
     } catch (error) {
+        console.log(error)
         const response = new ApiResponse(
             500,
             '예상하지 못한 서버 문제가 발생했습니다.'
@@ -180,6 +181,7 @@ router.post('/login', async (req, res) => {
         });
         return res.status(200).json(response);
     } catch (error) {
+        console.log(error)
         const response = new ApiResponse(
             500,
             '예상하지 못한 서버 문제가 발생했습니다.'
