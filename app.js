@@ -1,4 +1,3 @@
-const env = require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const app = express();
@@ -29,16 +28,9 @@ const allowCrossDomain = (req, res, next) => {
 app.use(allowCrossDomain);
 app.use('/api', indexRouter);
 app.get('/', (req, res) => {
-    res.status(200).send('chatGPT clone API');
+    res.status(200).send('chatGPT clone API ebignore test');
 });
 
 app.listen(3001, () => {
     console.log('3001 포트로 서버 연결');
 });
-
-// ❖ 24시간마다 모든유저 크레딧 10개로 갱신
-const intervalID = setInterval(myCallback, 86400000);
-
-async function myCallback() {
-    await Users.update({ credit: 10 }, { where: {} });
-}
