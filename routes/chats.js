@@ -94,7 +94,7 @@ router.post('/chat', checkLogin, async (req, res) => {
     } catch (error) {
         console.error(`[POST] /chat ${error}`);
         const response = new ApiResponse(
-            400,
+            500,
             '예상하지 못한 서버 문제가 발생했습니다.'
         );
         res.status(400).json(response);
