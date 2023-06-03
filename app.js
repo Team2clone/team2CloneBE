@@ -14,10 +14,11 @@ const allowCrossDomain = (req, res, next) => {
     res.header('Access-Control-Allow-Origin', 'http://localhost:3000');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
     res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, withcredentials');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, withcredentials, Authorization');
     // preflight 요청에 대한 처리
     if (req.method === 'OPTIONS') {
         res.header('Access-Control-Allow-Origin', req.headers.origin);
+        res.header('Access-Control-Allow-Headers', 'Content-Type, withcredentials, Authorization');
         res.sendStatus(200);
     } else {
         next();
