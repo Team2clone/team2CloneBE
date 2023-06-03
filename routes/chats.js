@@ -86,7 +86,7 @@ router.post('/chat', checkLogin, async (req, res) => {
 
     const response = new ApiResponse(201, '', {
         chatId: chat.chatId,
-        answer: reply,
+        answer: reply.content,
         chatName: chat.chatName,
     });
     res.status(201).json(response);
