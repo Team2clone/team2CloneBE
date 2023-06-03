@@ -1,7 +1,20 @@
 const express = require('express');
-const app = express();
+const router = express.Router();
 
-const chats = require('./chats');
-const users = require('./users');
+// CORS 설정
+const cors = require('cors');
+router.use(
+    cors({
+        origin: ['https://team2-clone-fe.vercel.app', 'http://localhost:3000']
+    })
+);
 
-module.exports = [chats, users];
+// chats 및 users 라우터 가져오기
+const chatsRouter = require('./chats');
+const usersRouter = require('./users');
+
+// chats 및 users 라우터 등록
+router.use('/chats', chatsRouter);
+router.use('/users', usersRouter);
+
+module.exports = router;
