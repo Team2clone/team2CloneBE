@@ -249,7 +249,7 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
         });
 
         // 신규 질문 추가
-        conversation.push({ role: 'user', content: ask }, conversationId);
+        conversation.push({ role: 'user', content: ask });
         // API 사용
         const result = await callChatGPT(conversation, conversationId);
 
