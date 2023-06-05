@@ -208,10 +208,12 @@ router.get('/credit', checkLogin, async (req, res) => {
     try {
         const { userId } = res.locals.user;
 
+        // 크레딧 조회
         const mycredit = await Credits.findOne({
             attributes: ['credit'],
             where: { userId },
         });
+        // 크레딧 응답
         const response = new ApiResponse(200, '', {
             mycredit: mycredit.dataValues.credit,
         });
