@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const checkLogin = require('../middlewares/checkLogin.js'); //유저아이디받기
-const { Users, Chats, Conversations, Credits } = require('../models');
+const { sequelize, Chats, Conversations, Credits } = require('../models');
 // openAI API 연결
 const { Configuration, OpenAIApi } = require('openai');
 require('dotenv').config();
@@ -54,9 +54,8 @@ router.post('/chat', checkLogin, async (req, res) => {
                 .json({ errorMsg: '프롬프트를 확인해 주세요' });
         }
         // 사용자 크레딧 확인
-        const credit = await Credits.findOne({ where: { UserId: userId } });
-        console.log(userId);
-        if (credit.credit === 0) {
+        const userCredit = await Credits.findOne({ where: { UserId: userId } });
+        if (userCredit.credit === 0) {
             return res.status(402).json({
                 errorMsg: '질문에 필요한 크레딧이 부족합니다.',
             });
@@ -87,26 +86,52 @@ router.post('/chat', checkLogin, async (req, res) => {
         });
         res.status(201).json(response);
 
-        // API 사용
-        const reply = await callChatGPT([{ role: 'user', content: ask }]);
+        // transaction 시작
+        const transaction = await sequelize.transaction();
+        try {
+            // API 사용
+            const reply = await callChatGPT([{ role: 'user', content: ask }]);
 
-        // GPT 답변 내용 저장
-        await Conversations.create({
-            ChatId: chat.dataValues.chatId,
-            isGPT: true,
-            conversation: reply.content,
-        });
+            // GPT 답변 내용 저장
+            await Conversations.create(
+                {
+                    ChatId: chat.dataValues.chatId,
+                    isGPT: true,
+                    conversation: reply.content,
+                },
+                { transaction }
+            );
 
-        // 크레딧 차감(답변 받은 후 차감, 시간 되면 transaction으로 처리 필요)
-        credit.credit -= 1;
-        credit.save();
+            // 크레딧 차감
+            const credit = userCredit.credit - 1;
+            await Credits.update(
+                { credit },
+                { where: { UserId: userId }, transaction }
+            );
+
+            // transaction 커밋
+            await transaction.commit();
+        } catch (transactionError) {
+            // tansaction 롤백
+            transaction.rollback();
+
+            // transaction 중 오류 시 default 응답 저장
+            await Conversations.create({
+                ChatId: chat.dataValues.chatId,
+                isGPT: true,
+                conversation: 'An API error has occurred. Please try again.',
+            });
+
+            // 에러 메시지 콘솔 저장
+            console.log(`[POST] /chat transactionError: ${transactionError}`);
+        }
     } catch (error) {
         console.error(`[POST] /chat ${error}`);
         const response = new ApiResponse(
             500,
             '예상하지 못한 서버 문제가 발생했습니다.'
         );
-        res.status(400).json(response);
+        res.status(500).json(response);
     }
 });
 
@@ -200,8 +225,8 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             return res.status(401).json(response);
         }
         // 사용자 크레딧 확인
-        const credit = await Credits.findOne({ where: { UserId: userId } });
-        if (credit.credit === 0) {
+        const userCredit = await Credits.findOne({ where: { UserId: userId } });
+        if (userCredit.credit === 0) {
             const response = new ApiResponse(
                 402,
                 '질문에 필요한 크레딧이 부족합니다.'
@@ -240,19 +265,44 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
 
         // 신규 질문 추가
         conversation.push({ role: 'user', content: ask });
-        // API 사용
-        const reply = await callChatGPT(conversation);
-        // GPT 대화 내용 저장
-        await Conversations.create({
-            ChatId: chatId,
-            isGPT: true,
-            conversation: reply.content,
-        });
+        // transaction 시작
+        const transaction = await sequelize.transaction();
+        try {
+            // API 사용
+            const reply = await callChatGPT(conversation);
+            // GPT 대화 내용 저장
+            await Conversations.create(
+                {
+                    ChatId: chatId,
+                    isGPT: true,
+                    conversation: reply.content,
+                },
+                { transaction }
+            );
 
-        // credit 차감
-        credit.credit -= 1;
-        credit.save();
+            // 크레딧 차감
+            const credit = userCredit.credit - 1;
+            await Credits.update(
+                { credit: credit },
+                { where: { UserId: userId }, transaction }
+            );
 
+            // transaction 커밋
+            await transaction.commit();
+        } catch (transactionError) {
+            // transaction 롤백
+            transaction.rollback();
+
+            // transaction 중 오류 시 default 응답 저장
+            await Conversations.create({
+                ChatId: chatId,
+                isGPT: true,
+                conversation: 'An API error has occurred. Please try again.',
+            });
+
+            // 에러 메시지 콘솔 저장
+            console.log(`[POST] /chat transactionError: ${transactionError}`);
+        }
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);
         const response = new ApiResponse(
