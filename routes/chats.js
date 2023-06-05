@@ -61,25 +61,35 @@ router.post('/chat', checkLogin, async (req, res) => {
                 errorMsg: '질문에 필요한 크레딧이 부족합니다.',
             });
         }
+        // 제목생성 후 저장
         const askArr = ask.split(' ');
         const slicedAsk =
             askArr.slice(0, 3).join(' ').length >= 15
                 ? ask.slice(0, 15)
                 : askArr.slice(0, 3).join(' ');
-
         const chat = await Chats.create({
             UserId: userId,
             chatName: slicedAsk,
         });
 
-        // API 사용
-        const reply = await callChatGPT([{ role: 'user', content: ask }]);
         // 사용자 질문 저장
         await Conversations.create({
             ChatId: chat.dataValues.chatId,
             isGPT: false,
             conversation: ask,
         });
+
+        // 선 응답 후 질문 답변 생성
+        const response = new ApiResponse(201, '', {
+            chatId: chat.chatId,
+            answer: '',
+            chatName: chat.chatName,
+        });
+        res.status(201).json(response);
+
+        // API 사용
+        const reply = await callChatGPT([{ role: 'user', content: ask }]);
+
         // GPT 답변 내용 저장
         await Conversations.create({
             ChatId: chat.dataValues.chatId,
@@ -90,13 +100,6 @@ router.post('/chat', checkLogin, async (req, res) => {
         // 크레딧 차감(답변 받은 후 차감, 시간 되면 transaction으로 처리 필요)
         credit.credit -= 1;
         credit.save();
-
-        const response = new ApiResponse(201, '', {
-            chatId: chat.chatId,
-            answer: reply.content,
-            chatName: chat.chatName,
-        });
-        res.status(201).json(response);
     } catch (error) {
         console.error(`[POST] /chat ${error}`);
         const response = new ApiResponse(
@@ -216,6 +219,11 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             isGPT: false,
             conversation: ask,
         });
+        
+        // 선 응답 후 API
+        const response = new ApiResponse(200, '', { answer: '' });
+        res.status(200).json(response);
+
         // 이전 대화 불러오기
         const previousChat = await Conversations.findAll({
             where: { ChatId: chatId },
@@ -245,9 +253,6 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
         credit.credit -= 1;
         credit.save();
 
-        // 응답
-        const response = new ApiResponse(200, '', { answer: reply.content });
-        res.status(200).json(response);
     } catch (error) {
         console.error(`[GET] /chat/:chatId with ${error}`);
         const response = new ApiResponse(
