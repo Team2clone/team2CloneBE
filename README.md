@@ -29,7 +29,7 @@ ChatGPT의 클론 프로젝트인 ChapGPT(짭GPT) 백엔드 레포입니다.
     - OpenAI API 응답 시간이 OpenAI 서버 상황과 메시지 난이도에 따라 달라져 <code>POST</code> 메서드 응답 지연 시 504 gateway timeout 발생
     - 서버에서 우선 빈 스트링(<code>""</code>)을 데이터베이스에 저장하고, 바로 응답을 보낸 후 openAI API 응답을 기다린 후 데이터베이스에 저장하는 방식으로 수정, 응답 받은 클라이언트는 응답 후 전체 채팅을 조회하는 요청과 함께 응답이 올때까지 주기적인 <code>GET</code> /api/chat/:chatId 요청으로 대화 내용을 갱신하는 것으로 해결
 - 크레딧 사용에 따른 OpenAI API 성공/실패 여부와 credit 일관성 유지
-    - OpenAI API에서 답변 생성 성공시에만 credit 차감하도록 sequelize trasaction을 이용해서 답변 실패 시 credit 차감을 rollbac하도록 구현
+    - OpenAI API에서 답변 생성 성공시에만 credit 차감하도록 sequelize trasaction을 이용해서 답변 실패 시 credit 차감을 rollback하도록 구현
 
 ## 설치
 
