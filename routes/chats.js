@@ -1,26 +1,31 @@
 const express = require('express');
 const router = express.Router();
-const checkLogin = require('../middlewares/checkLogin.js'); //유저아이디받기
+const checkLogin = require('../middlewares/checkLogin.js');
 const { sequelize, Chats, Conversations, Credits } = require('../models');
 // openAI API 연결
 const { Configuration, OpenAIApi } = require('openai');
+// 환경변수 사용
 require('dotenv').config();
 
 // openAI API 함수
 async function callChatGPT(conversation) {
+    // openAI API 설정
     const configuration = new Configuration({
         apiKey: process.env.OPENAI_API_KEY,
     });
 
     try {
+        // API 연결
         const openai = new OpenAIApi(configuration);
+        // API 응답 받기
         const response = await openai.createChatCompletion({
             model: 'gpt-3.5-turbo',
             messages: conversation,
             temperature: 0.8,
         });
-
+        // 응답 값 중에 답변 추출
         const reply = response.data.choices[0].message;
+        // 답변 값 반환
         return reply;
     } catch (error) {
         console.error('Error calling ChatGPT API:', error);
@@ -34,6 +39,7 @@ async function callChatGPT(conversation) {
 
 // 응답 객체
 class ApiResponse {
+    // code=HTTP code, message=메시지, data=전달할 데이터
     constructor(code, message = '', data = {}) {
         this.code = code;
         this.message = message;
@@ -48,17 +54,19 @@ router.post('/chat', checkLogin, async (req, res) => {
         const { userId } = res.locals.user;
         const { ask } = req.body;
 
+        // 질문 프롬프트가 비었거나 string이 아닌 경우 412에러 반환
         if (typeof ask !== 'string' || ask === '') {
-            return res
-                .status(412)
-                .json({ errorMsg: '프롬프트를 확인해 주세요' });
+            const response = new ApiResponse(412, '프롬프트를 확인해 주세요');
+            return res.status(412).json(response);
         }
-        // 사용자 크레딧 확인
+        // 사용자 크레딧 확인 후 크레딧이 없는 경우 402(payment required) 반환
         const userCredit = await Credits.findOne({ where: { UserId: userId } });
         if (userCredit.credit === 0) {
-            return res.status(402).json({
-                errorMsg: '질문에 필요한 크레딧이 부족합니다.',
-            });
+            const response = new ApiResponse(
+                402,
+                '질문에 필요한 크레딧이 부족합니다.'
+            );
+            return res.status(402).json(response);
         }
         // 제목생성 후 저장
         const askArr = ask.split(' ');
@@ -138,14 +146,15 @@ router.post('/chat', checkLogin, async (req, res) => {
 // ◎  전체 대화 목록 조회
 router.get('/chat', checkLogin, async (req, res) => {
     const { userId } = res.locals.user;
+    // 전체 대화 목록 조회
     try {
         const chats = await Chats.findAll({
-            // 테스트할것 진짜되나
             attributes: ['chatId', 'chatName', 'updatedAt'],
             where: { UserId: userId },
             order: [['updatedAt', 'DESC']],
         });
 
+        // 시간별로 데이터 전달하기 위한 처리
         const utcNow = new Date(); // UTC 시간대
         const koreaNow = new Date(utcNow.getTime() + 3.24e7); // 한국시간
         function koreaTimeConvert(time) {
@@ -157,6 +166,7 @@ router.get('/chat', checkLogin, async (req, res) => {
         const past7 = new Date(koreaNow.getTime() - 6.048e8); // 7일 전
         const past30 = new Date(koreaNow.getTime() - 2.592e9); // 30일 전
 
+        // 분류 배열 선언
         let [today, yesterday, previous7Days, previous30Days, onMayJune] = [
             [],
             [],
@@ -165,7 +175,8 @@ router.get('/chat', checkLogin, async (req, res) => {
             [],
         ];
 
-        const daySort = chats.forEach((chat) => {
+        // 분류 작업
+        chats.forEach((chat) => {
             const koreanUpdatedAt = koreaTimeConvert(chat.updatedAt);
             if (koreanUpdatedAt > past1) {
                 today.push({ chatId: chat.chatId, chatName: chat.chatName });
@@ -192,6 +203,8 @@ router.get('/chat', checkLogin, async (req, res) => {
                 }); // updatedAt이 30일 전보다 과거 시간이라면 onMayJune 배열에 push
             }
         });
+
+        // 분류 저장
         const result = {
             today,
             yesterday,
@@ -199,7 +212,7 @@ router.get('/chat', checkLogin, async (req, res) => {
             previous30Days,
             onMayJune,
         };
-
+        // 분류된 결과 응답
         const response = new ApiResponse(200, '', result);
         return res.status(200).json(response);
     } catch (error) {
@@ -244,7 +257,7 @@ router.post('/chat/:chatId', checkLogin, async (req, res) => {
             isGPT: false,
             conversation: ask,
         });
-        
+
         // 선 응답 후 API
         const response = new ApiResponse(200, '', { answer: '' });
         res.status(200).json(response);
@@ -333,6 +346,7 @@ router.get('/chat/:chatId', checkLogin, async (req, res) => {
             const response = new ApiResponse(401, '조회 권한이 없습니다.');
             return res.status(401).json(response);
         }
+        // 대화 조회
         const conversations = await Conversations.findAll({
             where: { ChatId: chatId },
             attributes: ['conversationId', 'isGPT', 'conversation'],
@@ -391,7 +405,6 @@ router.put('/chat/:chatId', checkLogin, async (req, res) => {
 // ◎  대화 삭제
 router.delete('/chat/:chatId', checkLogin, async (req, res) => {
     const { chatId } = req.params;
-    const { newChatName } = req.body;
     const { userId } = res.locals.user;
 
     try {
